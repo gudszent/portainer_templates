@@ -1,0 +1,52 @@
+version: "2"
+services:
+    elasticsearch:
+        image: elasticsearch:7.9.2
+        container_name: elasticsearch
+        hostname: elasticsearch.local
+        environment:
+            - discovery.type=single-node
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms1G -Xmx1G"
+        ports:
+            - 9200:9200
+            - 9300:9300
+        volumes:
+            - elasticsearch_config:/usr/share/elasticsearch/config
+            - elasticsearch_data:/usr/share/elasticsearch/data
+        networks:
+            - elknetwork
+    kibana:
+        image: kibana:7.9.2
+        container_name: kibana
+        hostname: kibana
+        environment:
+            - ELASTICSEARCH_HOSTS:http://elasticsearch.local
+        ports:
+            - 5601:5601
+        links:
+            - elasticsearch:elasticsearch
+        depends_on:
+          - elasticsearch
+        networks:
+          - elknetwork
+    logstash:
+        image: logstash:7.9.2
+        container_name: logstash
+        hostname: logstash
+        environment:
+            - XPACK.MONITORING_ELASTICSEARCH_HOSTS="http://elasticsearch.local:9200"
+        ports:
+            - 9600:9600
+            - 8089:8089
+        volumes:
+          - .\logstash:/usr/share/logstash/pipeline/
+        links:
+            - elasticsearch:elasticsearch
+        depends_on:
+          - elasticsearch
+        networks:
+          - elknetwork
+networks:
+    elknetwork:
+        driver: bridge
